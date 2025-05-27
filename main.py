@@ -8,18 +8,21 @@ MOCK_RULES = [
         'name': 'Hardcoded Secret',
         'pattern': 'SECRET_KEY=',
         'desc': 'Possible hardcoded secret detected.',
+        'severity': 'medium',
         'remediate': lambda content: content.replace('SECRET_KEY=', 'SECRET_KEY="REDACTED_AUTO_REMEDIATED" # ')
     },
     {
         'name': 'Insecure Function',
         'pattern': 'eval(',
         'desc': 'Use of insecure eval() function.',
+        'severity': 'high',
         'remediate': lambda content: content.replace('eval(', '# eval(  # AUTO-REMEDIATED: removed insecure eval')
     },
     {
         'name': 'Weak Hash',
         'pattern': 'md5(',
         'desc': 'Use of weak hash function md5.',
+        'severity': 'low',
         'remediate': lambda content: content.replace('md5(', 'sha256(  # AUTO-REMEDIATED: replaced md5 with sha256')
     },
 ]
@@ -46,7 +49,7 @@ def scan_directory(target_dir, auto_remediate=False):
             original_content = content
             for rule in MOCK_RULES:
                 if rule['pattern'] in content:
-                    findings.append({'file': path, 'rule': rule['name'], 'desc': rule['desc']})
+                    findings.append({'file': path, 'rule': rule['name'], 'desc': rule['desc'], 'severity': rule.get('severity', 'low')})
                     if auto_remediate and 'remediate' in rule:
                         content = rule['remediate'](content)
             if auto_remediate and content != original_content:
@@ -61,12 +64,24 @@ def scan_directory(target_dir, auto_remediate=False):
 # --- Notifier ---
 def notify(findings):
     if not findings:
-        print(" No vulnerabilities found. Safe to merge!")
+        print("\033[92mPASSED\033[0m: No vulnerabilities found. Safe to merge!")
+        return "PASSED"
     else:
-        print(" Vulnerabilities detected:")
+        has_high = any(f['severity'] == 'high' for f in findings)
+        has_medium = any(f['severity'] == 'medium' for f in findings)
+        only_low = all(f['severity'] == 'low' for f in findings)
+        if has_high or has_medium:
+            status = "\033[91mFAILED\033[0m"
+        elif only_low:
+            status = "\033[93mWARNED\033[0m"
+        else:
+            status = "\033[93mWARNED\033[0m"
+        print(f"{status}: Vulnerabilities detected:")
         for f in findings:
-            print(f"- {f['file']} | {f['rule']}: {f['desc']}")
+            sev = f["severity"].upper()
+            print(f"- {f['file']} | {f['rule']} [{sev}]: {f['desc']}")
         print("\nPlease remediate before merging.")
+        return status
 
 # --- CLI ---
 def main():
@@ -76,9 +91,13 @@ def main():
     args = parser.parse_args()
 
     findings = scan_directory(args.target, auto_remediate=args.auto_remediate)
-    notify(findings)
-    if findings:
+    status = notify(findings)
+    if status == "\033[91mFAILED\033[0m":
         exit(1)
+    elif status == "\033[93mWARNED\033[0m":
+        exit(0)
+    else:
+        exit(0)
 
 if __name__ == "__main__":
     main()
