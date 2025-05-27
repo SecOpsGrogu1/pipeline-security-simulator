@@ -23,6 +23,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Cloud Security Scanner
+      - name: Run Cloud Security Scanner (Auto-Remediate)
         run: |
-          python main.py .
+          python main.py --auto-remediate .
