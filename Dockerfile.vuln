@@ -1,0 +1,7 @@
+# Vulnerable Dockerfile for demo (uses old Alpine and vulnerable OpenSSL)
+FROM alpine:3.12
+
+# Install a specific, vulnerable version of openssl
+RUN apk add --no-cache openssl=1.1.1g-r0
+
+CMD ["openssl", "version"]

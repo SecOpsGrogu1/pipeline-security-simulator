@@ -23,6 +23,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Build Docker image (Vulnerable)
+        run: |
+          docker build -t demo-app -f Dockerfile.vuln .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.12.0
+        with:
+          image-ref: demo-app
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+
       - name: Run Cloud Security Scanner (Auto-Remediate)
         run: |
           python main.py --auto-remediate .

@@ -1,0 +1,7 @@
+# Secure Dockerfile for demo (uses up-to-date Alpine and OpenSSL)
+FROM alpine:3.18
+
+# Install latest openssl (patched)
+RUN apk add --no-cache openssl
+
+CMD ["openssl", "version"]
