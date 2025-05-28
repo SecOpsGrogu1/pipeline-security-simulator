@@ -1,0 +1,8 @@
+# Vulnerable Dockerfile (intentionally uses outdated packages)
+FROM ubuntu:18.04
+
+#RUN apt-get update && \
+    #apt-get install -y openssl=1.1.0g-2ubuntu4 && \
+    #apt-get clean && rm -rf /var/lib/apt/lists/*
+
+#CMD ["bash"]
