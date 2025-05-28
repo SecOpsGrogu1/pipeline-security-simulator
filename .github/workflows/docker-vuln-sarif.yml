@@ -1,0 +1,38 @@
+name: Docker Vulnerability Scan with SARIF
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    name: Docker Security Scan with Trivy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build vulnerable image
+        run: docker build -f Dockerfile.vuln -t demo-vuln:latest .
+
+      - name: Build clean image
+        run: docker build -f Dockerfile.clean -t demo-clean:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: demo-vuln:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Upload SARIF results to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
