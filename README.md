@@ -178,16 +178,27 @@ Inspired by commercial tools like Wiz and Prisma Cloud, but designed for learnin
    ```python
    # test_vuln.py
    SECRET_KEY="mysecret"
-   ```
+### How It Works in CI
+- **Builds the Docker image** from `Dockerfile`.
+- **Scans with Trivy**: Fails the build if any CRITICAL or HIGH vulnerabilities are found.
+- **Runs the Python scanner** for code-level checks (see below).
 
-4. **Run the scanner:**
-   ```sh
-   python main.py .
-   ```
-   - If vulnerabilities are found, details are printed and the script exits with code 1.
-   - If no issues are found, you'll see:
-     ```
-     ✅ No vulnerabilities found. Safe to merge!
+---
+
+## 🛡️ Full-Stack Security: Defense in Depth Demo
+
+This pipeline demonstrates BOTH:
+- **Container Security** (Trivy): Scans your Docker image for OS/package vulnerabilities.
+- **Code Security** (Python scanner): Scans your repo for hardcoded secrets, dangerous functions, and more.
+
+To pass the pipeline:
+- Make sure `Dockerfile` is secure (no high/critical container vulns).
+- Make sure your Python code has no mock vulnerabilities (see `test_vuln.py`).
+
+This "defense in depth" approach shows how real-world pipelines catch issues at multiple layers!
+
+---
+und. Safe to merge!
      ```
 
 ---
