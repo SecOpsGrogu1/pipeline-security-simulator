@@ -1,4 +1,4 @@
-name: Docker Vulnerability Demo
+name: Docker Vulnerability Demo & Scan
 
 on:
   push:
@@ -18,11 +18,27 @@ jobs:
 
       - name: Build vuln image
         run: docker build -f Dockerfile.vuln -t demo-vuln:latest .
+      
       - name: Build clean image
         run: docker build -f Dockerfile.clean -t demo-clean:latest .
 
-      - name: Scan vuln image (should fail)
-        id: scan_vuln
+      - name: Scan vuln image (with SARIF)
+        id: scan_vuln_sarif
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: demo-vuln:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: HIGH,CRITICAL
+
+      - name: Upload SARIF results to GitHub
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Scan vuln image (table format for display)
+        id: scan_vuln_table
         continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
@@ -40,7 +56,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Fail if vuln image has vulnerabilities
-        if: steps.scan_vuln.outcome == 'failure'
+        if: steps.scan_vuln_table.outcome == 'failure'
         run: |
           echo "Vulnerabilities detected in demo-vuln image. Failing pipeline as expected."
           exit 1
