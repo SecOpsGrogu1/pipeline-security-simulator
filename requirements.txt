@@ -1,2 +1,0 @@
-# Minimal requirements for the scanner
-typing-extensions
