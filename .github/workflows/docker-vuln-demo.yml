@@ -21,21 +21,23 @@ jobs:
       - name: Build clean image
         run: docker build -f Dockerfile.clean -t demo-clean:latest .
 
-      - name: Install Trivy
-        run: |
-          sudo apt-get update && sudo apt-get install -y wget
-          wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.tar.gz | tar zxvf -
-          sudo mv trivy /usr/local/bin/
-
       - name: Scan vuln image (should fail)
         id: scan_vuln
         continue-on-error: true
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL demo-vuln:latest
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: demo-vuln:latest
+          format: table
+          exit-code: 1
+          severity: HIGH,CRITICAL
 
       - name: Scan clean image (should pass)
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL demo-clean:latest
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: demo-clean:latest
+          format: table
+          exit-code: 1
+          severity: HIGH,CRITICAL
 
       - name: Fail if vuln image has vulnerabilities
         if: steps.scan_vuln.outcome == 'failure'
