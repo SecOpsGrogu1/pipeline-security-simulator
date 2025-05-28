@@ -1,0 +1,44 @@
+name: Docker Vulnerability Demo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build vuln image
+        run: docker build -f Dockerfile.vuln -t demo-vuln:latest .
+      - name: Build clean image
+        run: docker build -f Dockerfile.clean -t demo-clean:latest .
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget
+          wget -qO- https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.51.1_Linux-64bit.tar.gz | tar zxvf -
+          sudo mv trivy /usr/local/bin/
+
+      - name: Scan vuln image (should fail)
+        id: scan_vuln
+        continue-on-error: true
+        run: |
+          trivy image --exit-code 1 --severity HIGH,CRITICAL demo-vuln:latest
+
+      - name: Scan clean image (should pass)
+        run: |
+          trivy image --exit-code 1 --severity HIGH,CRITICAL demo-clean:latest
+
+      - name: Fail if vuln image has vulnerabilities
+        if: steps.scan_vuln.outcome == 'failure'
+        run: |
+          echo "Vulnerabilities detected in demo-vuln image. Failing pipeline as expected."
+          exit 1
