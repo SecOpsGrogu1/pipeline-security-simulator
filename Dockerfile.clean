@@ -1,8 +1,8 @@
 # Clean Dockerfile (uses latest stable and minimal packages)
-FROM ubuntu:22.04
+FROM ubuntu:22.04  # Current LTS with security updates
 
 RUN apt-get update && \
-    apt-get install -y ca-certificates && \
+    apt-get install -y ca-certificates && \  # Minimal required packages
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 CMD ["bash"]

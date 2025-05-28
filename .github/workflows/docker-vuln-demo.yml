@@ -1,5 +1,5 @@
 name: Docker Vulnerability Demo & Scan
-
+# Triggers: Run on all pushes/PRs to main branch
 on:
   push:
     branches: [ main ]
@@ -10,53 +10,60 @@ jobs:
   build-and-scan:
     runs-on: ubuntu-latest
     steps:
+      # ===== SETUP =====
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4  # Get repository code
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3  # Enable advanced build features
 
+      # ===== IMAGE BUILDING =====
       - name: Build vuln image
-        run: docker build -f Dockerfile.vuln -t demo-vuln:latest .
-      
-      - name: Build clean image
-        run: docker build -f Dockerfile.clean -t demo-clean:latest .
+        run: docker build -f Dockerfile.vuln -t demo-vuln:latest .  # Build intentionally vulnerable image
 
+      - name: Build clean image
+        run: docker build -f Dockerfile.clean -t demo-clean:latest .  # Build secure reference image
+
+      # ===== VULNERABILITY SCANNING =====
+      # First scan: Generate SARIF report for GitHub security tab
       - name: Scan vuln image (with SARIF)
         id: scan_vuln_sarif
-        continue-on-error: true
+        continue-on-error: true  # Don't fail yet to complete all steps
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: demo-vuln:latest
-          format: 'sarif'
+          format: 'sarif'  # Standard format for GitHub security alerts
           output: 'trivy-results.sarif'
-          severity: HIGH,CRITICAL
+          severity: HIGH,CRITICAL  # Only report serious vulnerabilities
 
       - name: Upload SARIF results to GitHub
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: trivy-results.sarif
+          sarif_file: trivy-results.sarif  # Makes results visible in Security tab
 
+      # Second scan: Human-readable output for logs
       - name: Scan vuln image (table format for display)
         id: scan_vuln_table
         continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: demo-vuln:latest
-          format: table
-          exit-code: 1
+          format: table  # Console-friendly output
+          exit-code: 1   # Will intentionally fail later
           severity: HIGH,CRITICAL
 
+      # Control scan: Should pass
       - name: Scan clean image (should pass)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: demo-clean:latest
           format: table
-          exit-code: 1
+          exit-code: 1   # Fail if any findings
           severity: HIGH,CRITICAL
 
+      # ===== PIPELINE ENFORCEMENT =====
       - name: Fail if vuln image has vulnerabilities
-        if: steps.scan_vuln_table.outcome == 'failure'
+        if: steps.scan_vuln_table.outcome == 'failure'  # Expected condition
         run: |
           echo "Vulnerabilities detected in demo-vuln image. Failing pipeline as expected."
-          exit 1
+          exit 1  # Simulate security gate failure
